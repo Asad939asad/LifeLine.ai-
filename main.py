@@ -14,14 +14,6 @@ HF_ADMIN_SECRET = os.environ.get("HF_ADMIN_SECRET")
 # 1. Load HF Secrets into the environment
 load_dotenv() 
 
-# 2. Explicitly map HF Secrets to Modal's expected names
-# This "bridges" the gap between what you named them in HF and what Modal wants.
-if "MODAL_TOKEN_ID" in os.environ:
-    os.environ["MODAL_TOKEN_ID"] = os.environ.get("MODAL_TOKEN_ID")
-if "MODAL_TOKEN_SECRET" in os.environ:
-    os.environ["MODAL_TOKEN_SECRET"] = os.environ.get("MODAL_TOKEN_SECRET")
-
-import modal # Now import modal after env vars are set
 # --- Import your custom AI pipeline modules ---
 from YOLO_Detector import crop_ecg_from_bytes
 from LLAVA_FineTuned import analyze_ecg_with_pulse 
