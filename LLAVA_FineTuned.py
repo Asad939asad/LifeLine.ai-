@@ -1,49 +1,54 @@
-import modal
+import requests
 import io
-import os
 import json
 from PIL import Image
-from dotenv import load_dotenv
-load_dotenv(dotenv_path="./.env")
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-HF_ADMIN_SECRET = os.environ.get("HF_ADMIN_SECRET")
+
 def analyze_ecg_with_pulse(cropped_image: Image.Image) -> dict:
     """
-    Takes a cropped PIL Image, sends it to the deployed Modal PULSE-7B app.
+    Takes a cropped PIL Image, sends it to the Mac Mini via ngrok,
+    which then forwards it to Modal PULSE-7B.
     """
-    # 1. Convert to bytes
+    # 1. Your ngrok URL from your Mac Mini
+    NGROK_URL = "https://gallon-shopper-outrank.ngrok-free.dev/v1/analyze-llava"
+
+    # 2. Convert PIL Image to bytes
     byte_arr = io.BytesIO()
     cropped_image.save(byte_arr, format='PNG')
     image_bytes = byte_arr.getvalue()
 
     try:
-        # 2. THE NEW MODAL SYNTAX: Use .from_name() instead of .lookup()
-        PulseECGModelClass = modal.Cls.from_name("pulse-ecg-analyzer", "PulseECGModel")
+        print(f"🚀 Sending image to Mac Mini Bridge via ngrok...")
         
-        # 3. Call the remote method
-        print("Sending image to Modal (PULSE-7B)...")
-        raw_json_string = PulseECGModelClass().analyze.remote(image_bytes)
+        # 3. Send the file to your Mac Mini Bridge
+        # Note: 'file' must match the key in your FastAPI bridge (UploadFile = File(...))
+        files = {"file": ("cropped_ecg.png", image_bytes, "image/png")}
+        response = requests.post(NGROK_URL, files=files, timeout=300) # Higher timeout for GPU inference
         
-        print("Received response from Modal!")
+        # Raise error for bad status codes (404, 500, etc)
+        response.raise_for_status()
         
-        # 4. Strip the markdown formatting that causes 500 errors
+        bridge_data = response.json()
+        
+        # Your bridge returns: {"status": "success", "analysis": "raw_json_string"}
+        raw_json_string = bridge_data.get("analysis", "")
+
+        print("Received response from Bridge!")
+        
+        # 4. Strip markdown formatting and parse JSON
         clean_json = raw_json_string.replace("```json", "").replace("```", "").strip()
-        
         return json.loads(clean_json)
         
-    except json.JSONDecodeError:
-        print(f"PULSE-7B returned invalid JSON: {raw_json_string}")
+    except requests.exceptions.RequestException as e:
+        print(f"Connection Error (Hugging Face -> ngrok): {str(e)}")
         return {
             "overall_interpretation": "Error",
             "findings": [],
-            "summary_report": "PULSE-7B did not return valid JSON."
+            "summary_report": f"Could not reach Mac Mini bridge: {str(e)}"
         }
     except Exception as e:
-        print(f"❌ Modal Error: {str(e)}")
-        # Return a fallback dictionary so the whole pipeline doesn't crash
+        print(f"General Error: {str(e)}")
         return {
             "overall_interpretation": "Error",
             "findings": [],
-            "summary_report": f"Failed to connect to PULSE-7B: {str(e)}"
+            "summary_report": f"Pipeline failure: {str(e)}"
         }
