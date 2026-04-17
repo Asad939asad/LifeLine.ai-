@@ -11,3 +11,4 @@ groq
 pydantic
 email-validator
 python-dotenv
+opencv-python-headless
