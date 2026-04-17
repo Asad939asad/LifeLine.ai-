@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+Pillow
+ultralytics
+modal
+httpx
+azure-ai-inference
+azure-core
+groq
+pydantic
+email-validator
