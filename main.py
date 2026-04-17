@@ -32,8 +32,8 @@ app = FastAPI(title="Lifeline ECG Vision API")
 # ==========================================
 # 1. DATABASE SETUP (SQLite)
 # ==========================================
-# DB_FILE = "/data/lifeline_api.db"
-DB_FILE = "./Database/lifeline_api.db"
+DB_FILE = "/data/lifeline_api.db"
+# DB_FILE = "//lifeline_api.db"
 def init_db():
     """Creates the API key table if it doesn't exist yet."""
     conn = sqlite3.connect(DB_FILE)
