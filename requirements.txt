@@ -10,3 +10,4 @@ azure-core
 groq
 pydantic
 email-validator
+python-dotenv
