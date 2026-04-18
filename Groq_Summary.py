@@ -33,11 +33,13 @@ def generate_master_consensus(llava_data: dict, medgemma_data: dict | str, gpt_s
     FORMAT REQUIRED:
     1. Primary Disease Summary (What is the most likely condition based on the weighted evidence).
     2. Clinical Context & Immediate Action (Synthesized from the Clinical Reference Summary).
+    3. Do smmarize GPT-5-Nano's summary in the report. But donot explicitely mention it is from GPT-5-Nano.  
+
     """
 
     # 4. Call the Groq API
     try:
-        print("⚡ Synthesizing Master Report via Groq...")
+        print("Synthesizing Report via Groq...")
         
         # Note: I'm using the model name you provided in your snippet. 
         # If 'openai/gpt-oss-20b' throws an error on Groq, change it to 'llama3-70b-8192'

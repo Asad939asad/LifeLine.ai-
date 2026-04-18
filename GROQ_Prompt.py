@@ -32,10 +32,12 @@ def generate_master_consensus_2(llava_data: dict | str, context: str | None, gpt
     FORMAT REQUIRED:
     1. Primary Summary: A clear statement of the findings, combining the visual data and user context.
     2. Clinical Context & Recommended Action: A synthesized plan of action based on the evidence.
+    3. Do smmarize GPT-5-Nano's summary in the report. But donot explicitely mention it is from GPT-5-Nano.  
+
     """
 
     try:
-        print("⚡ Synthesizing Master Report via Groq...")
+        print("Synthesizing Master Report via Groq...")
         
         # Note: 'llama3-70b-8192' or 'mixtral-8x7b-32768' are standard Groq models.
         completion = client.chat.completions.create(

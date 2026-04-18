@@ -20,7 +20,7 @@ def generate_clinical_summary(pulse_data: dict, medgemma_data: dict | str) -> st
 
     endpoint = "https://models.github.ai/inference"
     model_name = "openai/gpt-4.1-mini"
-
+    
     # 2. Initialize the client
     client = ChatCompletionsClient(
         endpoint=endpoint,
@@ -28,22 +28,28 @@ def generate_clinical_summary(pulse_data: dict, medgemma_data: dict | str) -> st
     )
 
     # 3. Format the raw data into a string for the LLM to read
+    # We remove the model names here to enforce the rule of never mentioning them.
     raw_evidence = f"""
-    PULSE-7B Findings: {json.dumps(pulse_data)}
-    MedGemma Findings: {json.dumps(medgemma_data)}
+    Primary Diagnostic Data: {json.dumps(pulse_data)}
+    Secondary Diagnostic Data: {json.dumps(medgemma_data)}
     """
 
     # 4. Construct the prompt asking for exactly what you need
-    system_prompt = """You are an expert AI medical assistant. 
-    You will be given raw diagnostic data from two AI ECG models. 
-    Do not use chain-of-thought reasoning; directly output a highly factual, 
-    structured report based strictly on the provided diagnoses."""
+    system_prompt = """You are an expert AI medical assistant acting as a single, unified medical system. 
+    You are reviewing data from two diagnostic sub-systems to write a final, authoritative clinical report.
+
+    CRITICAL INTERNAL RULES:
+    1. You must weigh the 'Primary Diagnostic Data' as 80% accurate and the 'Secondary Diagnostic Data' as 20% accurate. If they conflict, the Primary Data wins.
+    2. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the names of any AI models or sub-systems.
+    3. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the 80/20 weighting criteria or how you arrived at the conclusion.
+    4. ABSOLUTE FORBIDDEN BEHAVIOR: Do not use chain-of-thought reasoning. 
+    5. Speak directly to the patient/doctor confidently based on the synthesized evidence."""
 
     user_prompt = f"""
     Based on the following ECG findings:
     {raw_evidence}
 
-    Please write a short, professional document containing exactly these four sections:
+    Please write a short, professional document containing exactly these four sections. Output ONLY the sections, nothing else:
     1. Disease Description: A brief explanation of the condition found.
     2. Immediate Response: What immediate first-aid or medical action is required right now.
     3. Age Risk Profile: At what ages this condition is most dangerous or prevalent.

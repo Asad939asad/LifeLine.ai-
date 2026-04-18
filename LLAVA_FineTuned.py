@@ -17,7 +17,7 @@ def analyze_ecg_with_pulse(cropped_image: Image.Image) -> dict:
     image_bytes = byte_arr.getvalue()
 
     try:
-        print(f"🚀 Sending image to Mac Mini Bridge via ngrok...")
+        print(f"Sending image to Mac Mini Bridge via ngrok...")
         
         # 3. Send the file to your Mac Mini Bridge
         # Note: 'file' must match the key in your FastAPI bridge (UploadFile = File(...))
@@ -31,6 +31,17 @@ def analyze_ecg_with_pulse(cropped_image: Image.Image) -> dict:
         
         # Your bridge returns: {"status": "success", "analysis": "raw_json_string"}
         raw_json_string = bridge_data.get("analysis", "")
+
+        # --- UPDATED LOGIC HERE ---
+        if raw_json_string == "":
+            print("No response")
+            # Return a safe fallback to prevent json.loads() from crashing
+            return {
+                "overall_interpretation": "Error",
+                "findings": [],
+                "summary_report": "No response received from the model."
+            }
+        # --------------------------
 
         print("Received response from Bridge!")
         

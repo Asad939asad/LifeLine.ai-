@@ -31,7 +31,7 @@ def query_llava_2(prompt: str, image: Optional[Image.Image] = None) -> dict:
 
     try:
         modality = "Text + Image" if image else "Text-Only"
-        print(f"Sending {modality} request to Bridge...")
+        print(f"Sending {modality} request to NGROK Bridge...")
         
         # 3. Send request (requests library handles the multipart formatting automatically)
         response = requests.post(

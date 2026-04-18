@@ -32,8 +32,8 @@ app = FastAPI(title="Lifeline ECG Vision API")
 # ==========================================
 # 1. DATABASE SETUP (SQLite)
 # ==========================================
-DB_FILE = "/data/lifeline_api.db"
-# DB_FILE = "//lifeline_api.db"
+# DB_FILE = "/data/lifeline_api.db"
+DB_FILE = "./Database/lifeline_api.db"
 def init_db():
     """Creates the API key table if it doesn't exist yet."""
     conn = sqlite3.connect(DB_FILE)
@@ -77,7 +77,7 @@ async def generate_api_key(
 ):
     # 2. NEW LOGIC: Check if the email was provided
     if not request.email:
-        raise HTTPException(status_code=400, detail="No api can be generated")
+        raise HTTPException(status_code=400, detail="Without email, no api can be generated")
 
     expected_secret = os.environ.get("HF_ADMIN_SECRET", "super_secret_dev_key")
     if admin_secret != expected_secret:
@@ -118,11 +118,72 @@ async def generate_api_key(
     }
 
 # ==========================================
+# 2.1. KEY DELETION ENDPOINT
+# ==========================================
+
+@app.delete("/v1/keys/delete-oldest")
+async def delete_oldest_key(
+    request: KeyRequest,
+    admin_secret: str = Header(..., description="Master password to manage keys")
+):
+    # 1. Validate Email
+    if not request.email:
+        raise HTTPException(status_code=400, detail="Email is required to identify the key to delete.")
+
+    # 2. Authenticate Admin
+    expected_secret = os.environ.get("HF_ADMIN_SECRET", "super_secret_dev_key")
+    if admin_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Not authorized to delete keys.")
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    # 3. Find the oldest key for this email
+    # We order by created_at ascending (oldest first) and limit to 1
+    cursor.execute("""
+        SELECT key FROM api_keys 
+        WHERE email = ? 
+        ORDER BY created_at ASC 
+        LIMIT 1
+    """, (request.email,))
+    
+    row = cursor.fetchone()
+
+    # 4. Handle case where no keys exist
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"No active API keys found for email: {request.email}")
+
+    oldest_key = row[0]
+
+    # 5. Delete the key
+    try:
+        cursor.execute("DELETE FROM api_keys WHERE key = ?", (oldest_key,))
+        conn.commit()
+        
+        # Count remaining keys to return helpful info
+        cursor.execute("SELECT COUNT(*) FROM api_keys WHERE email = ?", (request.email,))
+        remaining_count = cursor.fetchone()[0]
+    except sqlite3.Error:
+        conn.close()
+        raise HTTPException(status_code=500, detail="Database error occurred while deleting the key.")
+
+    conn.close()
+
+    return {
+        "status": "success",
+        "message": "Oldest API key deleted successfully.",
+        "email": request.email,
+        "deleted_key": oldest_key,
+        "keys_remaining": remaining_count
+    }
+
+# ==========================================
 # 3. THE CORE AI PIPELINE ENDPOINT
 # ==========================================
 @app.get("/")
 def read_root():
-    return {"message": "Lifeline API is live and running!"}
+    return {"message": "Lifeline API is live and ready to server patients !!!"}
 
 @app.post("/v1/analyze")
 async def analyze_image(
@@ -175,14 +236,14 @@ async def analyze_image(
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 # =======================================================
-# 4. 🔥 THE NEW DYNAMIC MULTIMODAL ENDPOINT 🔥
+# 4. THE NEW DYNAMIC MULTIMODAL ENDPOINT
 # =======================================================
 @app.post("/v1/analyze-dynamic")
 async def analyze_dynamic_data(
     prompt: str = Form(...),                      # Required Text Prompt
+    x_api_key: str = Header(None),
     context: Optional[str] = Form(None),          # Optional Context
-    file: Optional[UploadFile] = File(None),      # Optional Image
-    x_api_key: str = Header(None) 
+    file: Optional[UploadFile] = File(None)      # Optional Image
 ):
     """
     A separate pipeline that processes a required prompt, an optional image (YOLO cropped), 
@@ -201,7 +262,7 @@ async def analyze_dynamic_data(
         try:
             # Applying YOLO Crop to the uploaded image
             pil_image = crop_ecg_from_bytes(contents)
-            crop_metrics = f"{pil_image.width}x{pil_image.height}px"
+            # crop_metrics = f"{pil_image.width}x{pil_image.height}px"
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"YOLO Processing Error: {str(e)}")
         except Exception as e:
@@ -226,8 +287,8 @@ async def analyze_dynamic_data(
             gpt_report
         )
         print("llava_analysis", llava_analysis)
-        print("gpt_report", gpt_report)
-        print("final_master_report", final_master_report)
+        # print("gpt_report", gpt_report)
+        # print("final_master_report", final_master_report)
         # 4. Compile the Response payload
         response_payload = {
             "status": "success",
@@ -236,8 +297,8 @@ async def analyze_dynamic_data(
         }
         
         # Only attach pipeline metrics if YOLO actually ran
-        if crop_metrics:
-            response_payload["pipeline_metrics"] = {"yolo_crop_size": crop_metrics}
+        # if crop_metrics:
+        #     response_payload["pipeline_metrics"] = {"yolo_crop_size": crop_metrics}
 
         return response_payload
 

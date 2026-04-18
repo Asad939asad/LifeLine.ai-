@@ -48,7 +48,7 @@ def generate_clinical_summary_2(llava_data: dict | str, context: str | None) -> 
     """
 
     try:
-        print("Synthesizing GPT summary...")
+        print("Synthesizing using GPTNano_2...")
         response = client.complete(
             messages=[
                 SystemMessage(system_prompt),

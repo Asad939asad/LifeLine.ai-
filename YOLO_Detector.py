@@ -1,9 +1,9 @@
-
 # # YOLO------------------------------------------------------------------------------------------------------------------------------------
 
 import io
 import os
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageOps
 from ultralytics import YOLO
 from dotenv import load_dotenv
 
@@ -15,36 +15,57 @@ HF_ADMIN_SECRET = os.environ.get("HF_ADMIN_SECRET")
 print("Loading YOLOv11s model...")
 yolo_model = YOLO("./Yolo Weights/best.pt") 
 
-def crop_ecg_from_bytes(image_bytes: bytes, margin_px: int = 80) -> Image.Image:
+def crop_ecg_from_bytes(image_bytes: bytes, return_canvas: bool = False, padding: int = 80):
     """
-    Takes raw bytes, finds the ECG paper, and returns a cropped PIL Image.
-    margin_px: Number of pixels to expand the crop box to prevent cutting off edges.
+    Safely handles PNGs and adds an exact pixel border (default 80px) to all sides 
+    using ImageOps.expand before running YOLO, improving detection accuracy.
     """
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img_width, img_height = image.size # Get the full size of the original photo
+    # 1. Load the incoming ECG
+    incoming_img = Image.open(io.BytesIO(image_bytes))
+    incoming_img = ImageOps.exif_transpose(incoming_img)
     
-    results = yolo_model.predict(source=image, conf=0.25, save=False)
+    # CRITICAL FIX for PNGs: Convert transparent backgrounds to white, not black
+    if incoming_img.mode in ('RGBA', 'LA') or (incoming_img.mode == 'P' and 'transparency' in incoming_img.info):
+        alpha = incoming_img.convert('RGBA').split()[-1]
+        bg = Image.new("RGB", incoming_img.size, (255, 255, 255))
+        bg.paste(incoming_img, mask=alpha)
+        incoming_img = bg
+    else:
+        incoming_img = incoming_img.convert("RGB")
+        
+    inc_w, inc_h = incoming_img.size
+
+    # 2. Add white padding to all sides effortlessly
+    canvas = ImageOps.expand(incoming_img, border=padding, fill='white')
+
+    # 3. Run YOLO on the padded canvas
+    results = yolo_model.predict(source=canvas, conf=0.25, save=False)
     
     if len(results[0].boxes) == 0:
-        raise ValueError("YOLO could not detect an ECG in this image.")
+        # Fallback to original image if padded canvas fails
+        results = yolo_model.predict(source=incoming_img, conf=0.25, save=False)
+        if len(results[0].boxes) == 0:
+            # --- MODIFIED: Returning error instead of raising ValueError ---
+            return "error"
         
-    # Extract original YOLO coordinates
+        box = results[0].boxes[0].xyxy[0].cpu().numpy()
+        cropped_image = incoming_img.crop(map(int, box))
+        
+        return (cropped_image, canvas) if return_canvas else cropped_image
+
+    # 4. Map coordinates back by simply subtracting the padding
     box = results[0].boxes[0].xyxy[0].cpu().numpy()
-    x1, y1, x2, y2 = map(int, box)
     
-    # --- NEW LOGIC: Expand the box by the margin ---
-    # We use max() and min() to ensure we don't accidentally try to crop 
-    # outside the actual boundaries of the original photo.
-    x1 = max(0, x1 - margin_px)
-    y1 = max(0, y1 - margin_px)
-    x2 = min(img_width, x2 + margin_px)
-    y2 = min(img_height, y2 + margin_px)
-    # -----------------------------------------------
-    
-    # Crop the PIL image mathematically with the new expanded box
-    cropped_image = image.crop((x1, y1, x2, y2))
+    real_x1 = max(0, int(box[0]) - padding)
+    real_y1 = max(0, int(box[1]) - padding)
+    real_x2 = min(inc_w, int(box[2]) - padding)
+    real_y2 = min(inc_h, int(box[3]) - padding)
+
+    # 5. Crop from the original image (so no quality is lost)
+    cropped_image = incoming_img.crop((real_x1, real_y1, real_x2, real_y2))
         
-    return cropped_image
+    return (cropped_image, canvas) if return_canvas else cropped_image
+
 
 # #Input1------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -63,6 +84,3 @@ def crop_ecg_from_bytes(image_bytes: bytes, margin_px: int = 80) -> Image.Image:
 
 
 # #Return--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
