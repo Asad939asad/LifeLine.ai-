@@ -279,38 +279,53 @@ async def analyze_dynamic_data(
             raise HTTPException(status_code=400, detail=f"Invalid image format or YOLO failure: {e}")
 
     try:
-        # STEP 1: Process with LLaVA
-        llava_analysis = await asyncio.to_thread(query_llava_2, prompt, pil_image)
+        if pil_image:
+            # --- IMAGE PATH: LLaVA → GPT → Groq ---
+            # STEP 1: Multimodal analysis with LLaVA (image is mandatory here)
+            llava_analysis = await asyncio.to_thread(query_llava_2, prompt, pil_image)
+            print("llava_analysis", llava_analysis)
 
-        # STEP 2: Pass LLaVA output and context to GPT
-        gpt_report = await asyncio.to_thread(
-            generate_clinical_summary_2, 
-            llava_analysis, 
-            context
-        )
+            # STEP 2: Pass LLaVA output and context to GPT
+            gpt_report = await asyncio.to_thread(
+                generate_clinical_summary_2,
+                llava_analysis,
+                context
+            )
 
-        # STEP 3: Final Consensus with Groq
-        final_master_report = await asyncio.to_thread(
-            generate_master_consensus_2,
-            llava_analysis,
-            context,
-            gpt_report
-        )
-        print("llava_analysis", llava_analysis)
-        # print("gpt_report", gpt_report)
-        # print("final_master_report", final_master_report)
-        # 4. Compile the Response payload
-        response_payload = {
+            # STEP 3: Final Consensus with Groq
+            final_master_report = await asyncio.to_thread(
+                generate_master_consensus_2,
+                llava_analysis,
+                context,
+                gpt_report
+            )
+
+            modality = "Text + Image"
+
+        else:
+            # --- TEXT-ONLY PATH: GPT → Groq (LLaVA skipped) ---
+            # STEP 1: Pass prompt (+ optional context) directly to GPT
+            gpt_report = await asyncio.to_thread(
+                generate_clinical_summary_2,
+                prompt,   # prompt acts as the primary input instead of LLaVA output
+                context
+            )
+
+            # STEP 2: Final Consensus with Groq
+            final_master_report = await asyncio.to_thread(
+                generate_master_consensus_2,
+                prompt,   # same — prompt is the primary evidence
+                context,
+                gpt_report
+            )
+
+            modality = "Text Only"
+
+        return {
             "status": "success",
-            "modality_used": "Text + Image" if pil_image else "Text Only",
-            "final_report": final_master_report 
+            "modality_used": modality,
+            "final_report": final_master_report
         }
-        
-        # Only attach pipeline metrics if YOLO actually ran
-        # if crop_metrics:
-        #     response_payload["pipeline_metrics"] = {"yolo_crop_size": crop_metrics}
-
-        return response_payload
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")

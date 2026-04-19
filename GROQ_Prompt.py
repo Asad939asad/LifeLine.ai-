@@ -28,6 +28,7 @@ def generate_master_consensus_2(llava_data: dict | str, context: str | None, gpt
     1. Integrate the 'Primary Model Data' with the 'User Context'. Use the 'Clinical Reference Summary' to structure your medical advice.
     2. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the names of the AI models (e.g., LLaVA, GPT, Groq). 
     3. Speak directly to the patient/doctor as a single, unified medical system.
+    
 
     FORMAT REQUIRED:
     1. Primary Summary: A clear statement of the findings, combining the visual data and user context.
