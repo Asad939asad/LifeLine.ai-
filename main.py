@@ -199,6 +199,10 @@ async def analyze_image(
     try:
         # STEP 1: Vision (YOLO Crop)
         cropped_pil_image = crop_ecg_from_bytes(contents)
+
+        # Early exit if YOLO did not detect an ECG in the image
+        if isinstance(cropped_pil_image, dict) and cropped_pil_image.get("status") == "error":
+            raise HTTPException(status_code=400, detail=cropped_pil_image.get("message", "No ECG detected"))
         
         # STEP 2: Diagnostics (PULSE and MedGemma running concurrently)
         pulse_task = asyncio.to_thread(analyze_ecg_with_pulse, cropped_pil_image.copy())
@@ -263,6 +267,11 @@ async def analyze_dynamic_data(
         try:
             # Applying YOLO Crop to the uploaded image
             pil_image = crop_ecg_from_bytes(contents)
+
+            # Early exit if YOLO did not detect an ECG in the image
+            if isinstance(pil_image, dict) and pil_image.get("status") == "error":
+                raise HTTPException(status_code=400, detail=pil_image.get("message", "No ECG detected"))
+
             # crop_metrics = f"{pil_image.width}x{pil_image.height}px"
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"YOLO Processing Error: {str(e)}")

@@ -46,7 +46,7 @@ def crop_ecg_from_bytes(image_bytes: bytes, return_canvas: bool = False, padding
         results = yolo_model.predict(source=incoming_img, conf=0.25, save=False)
         if len(results[0].boxes) == 0:
             # --- MODIFIED: Returning error instead of raising ValueError ---
-            return "error"
+            return {"status": "error", "message": "No ECG detected by YOLO"}
         
         box = results[0].boxes[0].xyxy[0].cpu().numpy()
         cropped_image = incoming_img.crop(map(int, box))
