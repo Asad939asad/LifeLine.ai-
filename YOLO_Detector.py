@@ -39,11 +39,11 @@ def crop_ecg_from_bytes(image_bytes: bytes, return_canvas: bool = False, padding
     canvas = ImageOps.expand(incoming_img, border=padding, fill='white')
 
     # 3. Run YOLO on the padded canvas
-    results = yolo_model.predict(source=canvas, conf=0.25, save=False)
+    results = yolo_model.predict(source=canvas, conf=0.80, save=False)
     
     if len(results[0].boxes) == 0:
         # Fallback to original image if padded canvas fails
-        results = yolo_model.predict(source=incoming_img, conf=0.25, save=False)
+        results = yolo_model.predict(source=incoming_img, conf=0.80, save=False)
         if len(results[0].boxes) == 0:
             # --- MODIFIED: Returning error instead of raising ValueError ---
             return {"status": "error", "message": "No ECG detected by YOLO"}
