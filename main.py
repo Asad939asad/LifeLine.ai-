@@ -235,6 +235,8 @@ async def analyze_image(
             "final_report": final_master_report 
         }
 
+    except HTTPException:
+        raise  # Re-raise intentional HTTP errors without converting to 500
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
