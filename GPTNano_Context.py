@@ -44,6 +44,7 @@ def generate_clinical_summary(pulse_data: dict, medgemma_data: dict | str) -> st
     2. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the names of any AI models or sub-systems.
     3. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the 70/30 weighting criteria or how you arrived at the conclusion.
     4. ABSOLUTE FORBIDDEN BEHAVIOR: Do not use chain-of-thought reasoning. 
+    4. ABSOLUTE FORBIDDEN BEHAVIOR: Do not mention anything about "primary" and "secondary" or "like data shows" words in the output.
     5. Speak directly to the patient/doctor confidently based on the synthesized evidence.
     6. Try to develop a concensus among primary and secondary data.
     7. If primary says normal and secondary says abnormal, then go with secondary otherwise 70/30.
