@@ -205,7 +205,8 @@ async def analyze_image(
         medgemma_task = analyze_with_medgemma(cropped_pil_image.copy())
         
         pulse_analysis, medgemma_analysis = await asyncio.gather(pulse_task, medgemma_task)
-
+        print("Pulse Analysis: ", pulse_analysis)
+        print("MedGemma Analysis: ", medgemma_analysis)
         # STEP 3: Reference Gathering (GPT)
         gpt_report = await asyncio.to_thread(
             generate_clinical_summary, 
