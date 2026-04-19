@@ -39,9 +39,9 @@ def generate_clinical_summary(pulse_data: dict, medgemma_data: dict | str) -> st
     You are reviewing data from two diagnostic sub-systems to write a final, authoritative clinical report.
 
     CRITICAL INTERNAL RULES:
-    1. You must weigh the 'Primary Diagnostic Data' as 80% accurate and the 'Secondary Diagnostic Data' as 20% accurate. If they conflict, the Primary Data wins.
+    1. You must weigh the 'Primary Diagnostic Data' as 50% accurate and the 'Secondary Diagnostic Data' as 50% accurate.
     2. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the names of any AI models or sub-systems.
-    3. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the 80/20 weighting criteria or how you arrived at the conclusion.
+    3. ABSOLUTE FORBIDDEN BEHAVIOR: You must NEVER mention the 50/50 weighting criteria or how you arrived at the conclusion.
     4. ABSOLUTE FORBIDDEN BEHAVIOR: Do not use chain-of-thought reasoning. 
     5. Speak directly to the patient/doctor confidently based on the synthesized evidence."""
 
