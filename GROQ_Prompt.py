@@ -58,3 +58,57 @@ def generate_master_consensus_2(llava_data: dict | str, context: str | None, gpt
     except Exception as e:
         print(f"Groq failed: {str(e)}")
         return f"Could not generate final consensus due to an AI error: {str(e)}"
+
+
+def generate_text_only_response(prompt: str, context: str | None, gpt_summary: str) -> str:
+    """
+    Text-only path: answers the user's prompt + optional context as a
+    medical Q&A assistant, using the GPT reference summary for depth.
+    No imaging data involved.
+    """
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+    user_context = context if context else "No additional context provided."
+
+    system_prompt = """You are an expert AI medical assistant. A user has asked you a medical question and may have provided additional personal or clinical context.
+
+    CRITICAL INTERNAL RULES:
+    1. Answer the user's question DIRECTLY and SPECIFICALLY — do not give generic advice.
+    2. Use the 'Additional Context' to personalise and tailor your answer to the user's situation.
+    3. Use the 'Clinical Reference' as supplementary depth — weave its insights into your answer naturally.
+    4. ABSOLUTE FORBIDDEN BEHAVIOR: NEVER mention AI model names (GPT, Groq, LLaVA, etc.).
+    5. ABSOLUTE FORBIDDEN BEHAVIOR: NEVER use phrases like "based on the data", "primary", "secondary", or "the model says".
+    6. Speak as a single, unified expert medical advisor directly to the user.
+    7. If the question is outside a medical domain, politely clarify you specialise in medical assistance.
+
+    FORMAT REQUIRED:
+    1. Direct Answer: Answer the user's exact question concisely and clearly.
+    2. Relevant Context & Personalisation: How the user's provided context affects this answer.
+    3. Recommended Next Steps: What the user should do now (see a doctor, monitor symptoms, lifestyle change, etc.).
+    """
+
+    user_message = f"""User Question: {prompt}
+
+Additional Context: {user_context}
+
+Clinical Reference (for depth): {gpt_summary}
+
+Please respond following the required format."""
+
+    try:
+        print("Generating text-only response via Groq...")
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.3,
+            max_tokens=1024,
+            stream=False
+        )
+        return completion.choices[0].message.content
+
+    except Exception as e:
+        print(f"Groq (text-only) failed: {str(e)}")
+        return f"Could not generate a response due to an AI error: {str(e)}"

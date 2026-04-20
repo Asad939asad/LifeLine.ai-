@@ -24,7 +24,7 @@ from Groq_Summary import generate_master_consensus
 
 # --- Import your new dynamic multimodal modules ---
 from GPTNano_Prompt import generate_clinical_summary_2
-from GROQ_Prompt import generate_master_consensus_2
+from GROQ_Prompt import generate_master_consensus_2, generate_text_only_response
 from LLAVA_Prompt import query_llava_2
 
 app = FastAPI(title="Lifeline ECG Vision API")
@@ -305,18 +305,18 @@ async def analyze_dynamic_data(
             modality = "Text + Image"
 
         else:
-            # --- TEXT-ONLY PATH: GPT → Groq (LLaVA skipped) ---
-            # STEP 1: Pass prompt (+ optional context) directly to GPT
+            # --- TEXT-ONLY PATH: GPT → Groq text Q&A (LLaVA skipped) ---
+            # STEP 1: Pass prompt (+ optional context) directly to GPT for reference enrichment
             gpt_report = await asyncio.to_thread(
                 generate_clinical_summary_2,
-                prompt,   # prompt acts as the primary input instead of LLaVA output
+                prompt,
                 context
             )
 
-            # STEP 2: Final Consensus with Groq
+            # STEP 2: Text-aware Groq answers the prompt using context + GPT depth
             final_master_report = await asyncio.to_thread(
-                generate_master_consensus_2,
-                prompt,   # same — prompt is the primary evidence
+                generate_text_only_response,
+                prompt,
                 context,
                 gpt_report
             )
