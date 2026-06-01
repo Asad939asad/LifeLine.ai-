@@ -1,15 +1,3 @@
----
-title: Lifeline ECG Vision API
-emoji: 🩺
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-pinned: false
-app_port: 7860
----
-
-# 🩺 LifeLine.ai - Multimodal ECG Vision & Patient Care Suite
-
 Welcome to **LifeLine.ai**, a next-generation clinical decision-support system and API gateway designed for automated ECG localization, parallel model diagnostics, and patient resource navigation. This project represents our Final Year Project (FYP) and is engineered to serve as a robust backend framework for AI-assisted cardiology.
 
 ---
@@ -56,8 +44,7 @@ flowchart TD
     B --> C[YOLOv11s Detector]
     C -- "No ECG Found" --> D[Return 400 Bad Request]
     C -- "ECG Cropped & Pre-processed" --> E[Concurrent Analysis]
-    E --> F[PULSE-7B VLM via Modal GPU Bridge]
-    E --> G[MedGemma Specialized LLM]
+    E --> F[MedGemma Specialized LLM]
     F --> H[GPT-4o-mini Clinical Reference Summarization]
     G --> H
     H --> I[Groq Chief Cardiologist Consensus Engine]
@@ -72,7 +59,7 @@ flowchart TD
     A[Client Request: Prompt + Optional Image & Context] --> B[FastAPI Gateway: /v1/analyze-dynamic]
     B --> C{Image Provided?}
     C -- Yes --> D[YOLOv11s Crop]
-    D --> E[LLaVA-2 Vision Processing]
+    D --> E[Medgamma Vision Processing]
     E --> F[GPT-4o-mini Reference Synthesis]
     F --> G[Groq Consensus Engine]
     G --> H[Final Report]
@@ -193,4 +180,5 @@ All 34 tests should pass:
 ```text
 ======================= 34 passed, 4 warnings in 4.46s ========================
 ```
+# LifeLine.ai-
 # LifeLine.ai-
