@@ -178,5 +178,3 @@ All 34 tests should pass:
 ```text
 ======================= 34 passed, 4 warnings in 4.46s ========================
 ```
-# LifeLine.ai-
-# LifeLine.ai-
