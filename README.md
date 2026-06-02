@@ -4,9 +4,9 @@ Welcome to **LifeLine.ai**, a next-generation clinical decision-support system a
 
 ## 🚀 Key Features
 
-*   **Hierarchical AI Diagnostics Pipeline**: Combines state-of-the-art vision models (YOLOv11s), multi-modal LLMs (PULSE-7B), specialized clinical models (MedGemma), and consensus synthesizers (GPT-4o-mini, Groq).
+*   **Hierarchical AI Diagnostics Pipeline**: Combines state-of-the-art vision models (YOLOv11s), specialized clinical vision-language models (MedGemma), and consensus synthesizers (GPT-4o-mini, Groq).
 *   **Automated ECG Localization**: Pre-processes raw scans (correcting alpha channels for PNGs and applying pad-expansion padding) to crop precise ECG segments using YOLOv11s.
-*   **Dual-VLM Consensus Engine**: Concurrently queries PULSE-7B (hosted on serverless Modal GPU) and MedGemma (hosted behind ngrok tunnels) for parallel diagnostics.
+*   **Specialized Consensus Engine**: Queries MedGemma (hosted on serverless GPU and ngrok tunnels) for multi-expert diagnostics.
 *   **Dynamic Multimodal Chat & Q&A**: Supports custom prompts with or without accompanying ECG images, automatically adjusting processing pipelines based on the inputs.
 *   **API Key Management Dashboard**: SQLite-backed developer key provisioning (`dasa_` key strings) mapped against user emails with strict registry limit enforcement (max 2 keys).
 *   **Emergency Resource Finder**: Integrated locator dashboards to direct anomalous cases to the nearest cardiologists or emergency care.
@@ -43,12 +43,10 @@ flowchart TD
     A[Client ECG Image Upload] --> B[FastAPI Gateway: /v1/analyze]
     B --> C[YOLOv11s Detector]
     C -- "No ECG Found" --> D[Return 400 Bad Request]
-    C -- "ECG Cropped & Pre-processed" --> E[Concurrent Analysis]
-    E --> F[MedGemma Specialized LLM]
-    F --> H[GPT-4o-mini Clinical Reference Summarization]
-    G --> H
-    H --> I[Groq Chief Cardiologist Consensus Engine]
-    I --> J[Final Consensus Medical Report]
+    C -- "ECG Cropped & Pre-processed" --> E[MedGemma Diagnostic VLM]
+    E --> F[GPT-4o-mini Clinical Reference Summarization]
+    F --> G[Groq Chief Cardiologist Consensus Engine]
+    G --> H[Final Consensus Medical Report]
 ```
 
 ### 2. Dynamic Multimodal Q&A (`POST /v1/analyze-dynamic`)
@@ -75,7 +73,7 @@ flowchart TD
 
 *   [main.py](file:///Volumes/ssd2/Custom%20Library/main.py): The main FastAPI gateway exposing key registration and medical diagnostic endpoints.
 *   [YOLO_Detector.py](file:///Volumes/ssd2/Custom%20Library/YOLO_Detector.py): Pre-processes raw images, adds boundary padding, and crops the core ECG area using YOLOv11s (`Yolo Weights/best.pt`).
-*   [LLAVA_FineTuned.py](file:///Volumes/ssd2/Custom%20Library/LLAVA_FineTuned.py) / [LLAVA_Prompt.py](file:///Volumes/ssd2/Custom%20Library/LLAVA_Prompt.py): Client connectors to query the fine-tuned PULSE-7B VLM.
+*   [LLAVA_FineTuned.py](file:///Volumes/ssd2/Custom%20Library/LLAVA_FineTuned.py) / [LLAVA_Prompt.py](file:///Volumes/ssd2/Custom%20Library/LLAVA_Prompt.py): Client connectors to query the fine-tuned MedGemma VLM.
 *   [MedGamma_FineTuned.py](file:///Volumes/ssd2/Custom%20Library/MedGamma_FineTuned.py): Asynchronous client connector for the MedGemma model.
 *   [GPTNano_Context.py](file:///Volumes/ssd2/Custom%20Library/GPTNano_Context.py) / [GPTNano_Prompt.py](file:///Volumes/ssd2/Custom%20Library/GPTNano_Prompt.py): Connects to the Azure Inference Client to synthesize clinical findings into structured reports under weighted rules.
 *   [Groq_Summary.py](file:///Volumes/ssd2/Custom%20Library/Groq_Summary.py) / [GROQ_Prompt.py](file:///Volumes/ssd2/Custom%20Library/GROQ_Prompt.py): Implements the Chief Cardiologist consensus agent utilizing Llama-based LLMs hosted on Groq.
@@ -114,7 +112,7 @@ Deletes the oldest key associated with an email to free up space.
 ### Diagnostics
 
 #### 🩺 Analyze ECG Image (Static Pipeline)
-The main image diagnostic pipeline. Runs YOLO crop, concurrency checks on PULSE & MedGemma, clinical reference summarization, and final master report.
+The main image diagnostic pipeline. Runs YOLO crop, MedGemma VLM diagnostics, clinical reference summarization, and final master report.
 *   **Endpoint**: `POST /v1/analyze`
 *   **Headers**: `x-api-key: <your_developer_key>`
 *   **Body (Multipart Form-Data)**:
@@ -156,7 +154,7 @@ docker run -d -p 7860:7860 --env-file .env lifeline-api
 The server will boot up and be accessible at `http://localhost:7860`.
 
 ### 4. Running the Local Bridge
-If you need to connect to the PULSE-7B model deployed on Modal:
+If you need to connect to the MedGemma model deployed on Modal:
 ```bash
 cd MODALAPI
 python -m venv venv
